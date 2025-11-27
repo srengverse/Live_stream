@@ -151,7 +151,7 @@ def dashboard():
     </script>
 </body>
 </html>
-    ''', now=datetime)   # ← FIX សំខាន់បំផុត!
+    ''', now=datetime.now())
 
 @app.route('/api/status')
 def api_status():
