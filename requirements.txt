@@ -1,2 +1,4 @@
 python-dotenv
 imageio-ffmpeg
+flask
+psutil
