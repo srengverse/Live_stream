@@ -71,66 +71,83 @@ class StreamManager:
     def start_stream(self):
         """Function to start the streaming process"""
         
-        # Validation
-        if not os.path.exists(VIDEO_FILE):
-            error_msg = f"Video file '{VIDEO_FILE}' not found!"
-            print(f"Error: {error_msg}")
-            self.update_status(status="error", last_error=error_msg)
-            return
-
-        if not STREAM_KEY:
-            error_msg = "STREAM_KEY not found! Please check your .env file or environment variables."
-            print(f"Error: {error_msg}")
-            self.update_status(status="error", last_error=error_msg)
-            return
-
-        # RTMP URL Selection
-        if PLATFORM == "youtube":
-            RTMP_URL = f"rtmp://a.rtmp.youtube.com/live2/{STREAM_KEY}"
-        elif PLATFORM == "facebook":
-            RTMP_URL = f"rtmps://live-api-s.facebook.com:443/rtmp/{STREAM_KEY}"
-        else:
-            error_msg = f"Unsupported platform: {PLATFORM}. Use 'youtube' or 'facebook'."
-            print(f"Error: {error_msg}")
-            self.update_status(status="error", last_error=error_msg)
-            return
-
-        print("Streaming Service Started 24/7")
-        print(f"File: {VIDEO_FILE}")
-        print(f"Platform: {'YouTube' if PLATFORM == 'youtube' else 'Facebook'}")
-
-        # Get FFmpeg executable path
-        if shutil.which("ffmpeg"):
-            FFMPEG_EXE = "ffmpeg"
-        else:
-            FFMPEG_EXE = imageio_ffmpeg.get_ffmpeg_exe()
-
-        print(f"Using FFmpeg: {FFMPEG_EXE}")
-
-        # Command construction
-        command = [
-            FFMPEG_EXE,
-            "-re",                          # Read input at native frame rate
-            "-stream_loop", "-1",           # Loop indefinitely
-            "-i", VIDEO_FILE,               # Input file
-            "-c:v", "libx264",              # Video codec
-            "-preset", "fast",              # Encoding speed
-            "-b:v", "2500k",                # Video bitrate
-            "-maxrate", "2500k",            # Max bitrate
-            "-bufsize", "5000k",            # Buffer size
-            "-pix_fmt", "yuv420p",          # Pixel format
-            "-g", "60",                     # Keyframe interval
-            "-r", "30",                     # Output frame rate
-            "-c:a", "aac",                  # Audio codec
-            "-b:a", "160k",                 # Audio bitrate
-            "-ar", "44100",                 # Audio sample rate
-            "-ac", "2",                     # Stereo audio
-            "-f", "flv",                    # Output format
-            RTMP_URL                        # Destination
-        ]
-
         # Main Loop for streaming
         while self.should_run:
+            # Reload environment variables to pick up changes (e.g. new STREAM_KEY)
+            load_dotenv(override=True)
+            
+            # Get configuration from environment
+            video_file = os.environ.get("VIDEO_FILE", "video.mp4")
+            platform = os.environ.get("PLATFORM", "facebook").lower()
+            stream_key = os.environ.get("STREAM_KEY")
+            
+            # Update status with current config
+            self.update_status(
+                platform=platform,
+                video_file=video_file
+            )
+
+            # Validation
+            if not os.path.exists(video_file):
+                error_msg = f"Video file '{video_file}' not found!"
+                print(f"Error: {error_msg}")
+                self.update_status(status="error", last_error=error_msg)
+                time.sleep(5)
+                continue
+
+            if not stream_key:
+                error_msg = "STREAM_KEY not found! Please check your .env file or environment variables."
+                print(f"Error: {error_msg}")
+                self.update_status(status="error", last_error=error_msg)
+                time.sleep(5)
+                continue
+
+            # RTMP URL Selection
+            if platform == "youtube":
+                rtmp_url = f"rtmp://a.rtmp.youtube.com/live2/{stream_key}"
+            elif platform == "facebook":
+                rtmp_url = f"rtmps://live-api-s.facebook.com:443/rtmp/{stream_key}"
+            else:
+                error_msg = f"Unsupported platform: {platform}. Use 'youtube' or 'facebook'."
+                print(f"Error: {error_msg}")
+                self.update_status(status="error", last_error=error_msg)
+                time.sleep(5)
+                continue
+
+            print("Streaming Service Started 24/7")
+            print(f"File: {video_file}")
+            print(f"Platform: {'YouTube' if platform == 'youtube' else 'Facebook'}")
+
+            # Get FFmpeg executable path
+            if shutil.which("ffmpeg"):
+                ffmpeg_exe = "ffmpeg"
+            else:
+                ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+
+            print(f"Using FFmpeg: {ffmpeg_exe}")
+
+            # Command construction
+            command = [
+                ffmpeg_exe,
+                "-re",                          # Read input at native frame rate
+                "-stream_loop", "-1",           # Loop indefinitely
+                "-i", video_file,               # Input file
+                "-c:v", "libx264",              # Video codec
+                "-preset", "fast",              # Encoding speed
+                "-b:v", "2500k",                # Video bitrate
+                "-maxrate", "2500k",            # Max bitrate
+                "-bufsize", "5000k",            # Buffer size
+                "-pix_fmt", "yuv420p",          # Pixel format
+                "-g", "60",                     # Keyframe interval
+                "-r", "30",                     # Output frame rate
+                "-c:a", "aac",                  # Audio codec
+                "-b:a", "160k",                 # Audio bitrate
+                "-ar", "44100",                 # Audio sample rate
+                "-ac", "2",                     # Stereo audio
+                "-f", "flv",                    # Output format
+                rtmp_url                        # Destination
+            ]
+
             try:
                 print("Starting stream...")
                 self.update_status(
