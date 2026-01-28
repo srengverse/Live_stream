@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Media files
+*.mp4
+*.mov
+*.avi
+*.mkv
+
+# OS specific
+.DS_Store
+.directory

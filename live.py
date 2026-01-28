@@ -46,19 +46,17 @@ def get_ffmpeg_command():
     else:
         ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
 
+    preset = os.environ.get("FFMPEG_PRESET", "ultrafast")
+    scaling_algo = os.environ.get("SCALING_ALGO", "bilinear")
+
     return [
         ffmpeg_exe,
         "-re", "-stream_loop", "-1", "-i", VIDEO_FILE,
-        "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-tune", "zerolatency",
-        "-profile:v", "high",
-        "-level", "4.1",
-        "-pix_fmt", "yuv420p",
-        "-vf", "scale=640:960:flags=lanczos",
-        "-r", "30", "-g", "60",
-        "-b:v", "1500k", "-maxrate", "1500k", "-bufsize", "3000k",
-        "-c:a", "aac", "-b:a", "96k", "-ar", "44100", "-ac", "2",
+        "-c:v", "copy",
+        "-c:a", "copy",
+        "-bsf:a", "aac_adtstoasc",
+        "-tls_verify", "0",
+        "-rtmp_live", "live",
         "-f", "flv", "-threads", "2",
         rtmp_url
     ]
@@ -141,7 +139,7 @@ def dashboard():
 
         setInterval(() => {
             fetch('/api/status').then(r => r.json()).then(d => {
-                log.textContent = `Platform: ${d.platform.toUpperCase()}\\nVideo: ${d.video_file}\\nResolution: 640×960 (downscaled)\\nPreset: veryfast + baseline\\nSpeed: ${d.speed} (≥1.3x guaranteed)\\nFPS: ${d.fps}\\nBitrate: ${d.bitrate}\\nUptime: ${d.uptime}\\nRestarts: ${d.restarts}\\nCPU: ${d.cpu}% | RAM: ${d.ram}%`;
+                log.textContent = `Platform: ${d.platform.toUpperCase()}\\nVideo: ${d.video_file}\\nResolution: 640×960 (downscaled)\\nPreset: ${d.preset} + ${d.scaling_algo}\\nSpeed: ${d.speed} (≥1.0x target)\\nFPS: ${d.fps}\\nBitrate: ${d.bitrate}\\nUptime: ${d.uptime}\\nRestarts: ${d.restarts}\\nCPU: ${d.cpu}% | RAM: ${d.ram}%`;
                 log.scrollTop = log.scrollHeight;
             });
             update();
@@ -162,7 +160,9 @@ def api_status():
         **stream_status,
         "cpu": round(psutil.cpu_percent(), 1),
         "ram": round(psutil.virtual_memory().percent, 1),
-        "restarts": stream_status["restart_count"]
+        "restarts": stream_status["restart_count"],
+        "preset": os.environ.get("FFMPEG_PRESET", "ultrafast"),
+        "scaling_algo": os.environ.get("SCALING_ALGO", "bilinear")
     })
 
 def streaming_loop():
