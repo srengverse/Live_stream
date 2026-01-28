@@ -1,4 +1,5 @@
 python-dotenv
 imageio-ffmpeg
 flask
-psutilgunicorn
+psutil
+gunicorn
