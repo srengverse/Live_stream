@@ -81,79 +81,290 @@ def parse_stats(line):
 def dashboard():
     return render_template_string('''
 <!DOCTYPE html>
-<html class="h-full bg-gray-950 text-white">
+<html lang="en">
 <head>
-    <title>LIVE 24/7 • Ultra Optimized</title>
+    <title>Stream Monitor</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'JetBrains Mono', monospace; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:       #0a0a0f;
+            --surface:  #111118;
+            --border:   #1e1e2e;
+            --muted:    #3a3a50;
+            --text:     #e2e2f0;
+            --sub:      #6b6b85;
+            --green:    #22c55e;
+            --red:      #ef4444;
+            --blue:     #3b82f6;
+            --amber:    #f59e0b;
+            --purple:   #a855f7;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        /* ── header ── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--red);
+            box-shadow: 0 0 0 0 rgba(239,68,68,.6);
+            animation: pulse 1.8s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.6); }
+            50%      { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+        }
+        .brand-name {
+            font-size: 18px; font-weight: 700; letter-spacing: -.3px;
+        }
+        .live-badge {
+            background: var(--red);
+            color: #fff;
+            font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
+            padding: 3px 9px; border-radius: 4px;
+        }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+        .platform-pill {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-size: 13px; font-weight: 500;
+            color: var(--sub);
+            display: flex; align-items: center; gap: 6px;
+        }
+        .platform-pill span { color: var(--text); }
+
+        /* ── stat grid ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 700px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px 22px;
+        }
+        .stat-label {
+            font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
+            color: var(--sub); margin-bottom: 10px;
+        }
+        .stat-value {
+            font-size: 28px; font-weight: 700; line-height: 1;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .stat-sub {
+            font-size: 12px; color: var(--sub); margin-top: 6px;
+        }
+        .stat-value.green  { color: var(--green); }
+        .stat-value.red    { color: var(--red); }
+        .stat-value.blue   { color: var(--blue); }
+        .stat-value.amber  { color: var(--amber); }
+        .stat-value.purple { color: var(--purple); }
+
+        /* ── bottom row ── */
+        .bottom-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 700px) { .bottom-row { grid-template-columns: 1fr; } }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px 22px;
+        }
+        .panel-title {
+            font-size: 12px; font-weight: 600; letter-spacing: .7px; text-transform: uppercase;
+            color: var(--sub); margin-bottom: 16px;
+        }
+
+        /* system bars */
+        .sys-row { margin-bottom: 14px; }
+        .sys-row:last-child { margin-bottom: 0; }
+        .sys-header {
+            display: flex; justify-content: space-between; align-items: baseline;
+            font-size: 13px; margin-bottom: 7px;
+        }
+        .sys-header .sys-name { color: var(--sub); }
+        .sys-header .sys-val  { font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+        .bar-track {
+            height: 5px; background: var(--border); border-radius: 99px; overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%; border-radius: 99px;
+            transition: width .6s ease;
+        }
+        .bar-fill.cpu  { background: var(--blue); }
+        .bar-fill.ram  { background: var(--purple); }
+        .bar-fill.spd  { background: var(--green); }
+
+        /* stream info */
+        .info-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+        }
+        .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .info-row .key { color: var(--sub); }
+        .info-row .val { font-weight: 500; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); }
+
+        /* status dot in uptime card */
+        .status-row { display: flex; align-items: center; gap: 8px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-purple-900 via-black to-blue-900">
-    <div class="container mx-auto p-6 max-w-6xl">
-        <div class="text-center mb-10 mt-8">
-            <h1 class="text-6xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-                LIVE 24/7
-            </h1>
-            <p class="text-xl text-cyan-300 mt-3">Ultra-Optimized • Zero Lag • Render.com Ready</p>
+<body>
+
+    <div class="header">
+        <div class="brand">
+            <div class="brand-dot" id="hdr-dot"></div>
+            <div class="brand-name">Stream Monitor</div>
+            <div class="live-badge" id="live-badge">LIVE</div>
         </div>
-
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10" id="stats"></div>
-
-        <div class="bg-black/40 backdrop-blur-xl rounded-3xl p-8 border border-purple-500/30">
-            <h2 class="text-2xl font-bold mb-6 flex items-center gap-4">
-                <i data-lucide="zap" class="w-8 h-8 text-yellow-400"></i>
-                Real-time Status
-            </h2>
-            <pre id="log" class="bg-black/60 rounded-2xl p-6 h-80 overflow-y-auto font-mono text-sm text-green-400"></pre>
-        </div>
-
-        <div class="text-center mt-8 text-gray-400 text-sm">
-            © {{ now.year }} • Infinite Streaming Engine
+        <div class="header-right">
+            <div class="platform-pill" id="platform-pill">
+                Platform &nbsp;<span id="platform-name">—</span>
+            </div>
         </div>
     </div>
 
-    <script>
-        lucide.createIcons();
-        const log = document.getElementById('log');
-        const stats = document.getElementById('stats');
+    <!-- stat cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Status</div>
+            <div class="stat-value" id="s-status">—</div>
+            <div class="stat-sub" id="s-restarts"></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Uptime</div>
+            <div class="stat-value blue" id="s-uptime">—</div>
+            <div class="stat-sub" id="s-uptime-sub"></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Bitrate</div>
+            <div class="stat-value amber" id="s-bitrate">—</div>
+            <div class="stat-sub" id="s-speed"></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">FPS</div>
+            <div class="stat-value purple" id="s-fps">—</div>
+            <div class="stat-sub">frames per second</div>
+        </div>
+    </div>
 
-        function update() {
-            fetch('/api/status').then(r => r.json()).then(d => {
-                stats.innerHTML = `
-                    <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-                        <div class="text-5xl font-bold ${d.status === 'streaming' ? 'text-green-400' : 'text-red-400'}">${d.status.toUpperCase()}</div>
-                        <div class="text-gray-400 mt-2">Status</div>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-                        <div class="text-5xl font-bold text-cyan-400">${d.uptime}</div>
-                        <div class="text-gray-400 mt-2">Uptime</div>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-                        <div class="text-5xl font-bold text-purple-400">${d.fps}<span class="text-2xl">fps</span></div>
-                        <div class="text-yellow-400 text-lg">${d.speed}</div>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
-                        <div class="text-4xl font-bold text-orange-400">${d.bitrate}</div>
-                        <div class="text-gray-400 mt-2">Bitrate • CPU ${d.cpu}%</div>
-                    </div>
-                `;
-                document.title = d.status === 'streaming' ? 'LIVE • ${d.fps}fps' : 'OFFLINE';
-            });
+    <!-- bottom row -->
+    <div class="bottom-row">
+
+        <!-- system -->
+        <div class="panel">
+            <div class="panel-title">System</div>
+            <div class="sys-row">
+                <div class="sys-header">
+                    <span class="sys-name">CPU</span>
+                    <span class="sys-val" id="cpu-val">—</span>
+                </div>
+                <div class="bar-track"><div class="bar-fill cpu" id="cpu-bar" style="width:0%"></div></div>
+            </div>
+            <div class="sys-row">
+                <div class="sys-header">
+                    <span class="sys-name">RAM</span>
+                    <span class="sys-val" id="ram-val">—</span>
+                </div>
+                <div class="bar-track"><div class="bar-fill ram" id="ram-bar" style="width:0%"></div></div>
+            </div>
+            <div class="sys-row">
+                <div class="sys-header">
+                    <span class="sys-name">Speed</span>
+                    <span class="sys-val" id="spd-val">—</span>
+                </div>
+                <div class="bar-track"><div class="bar-fill spd" id="spd-bar" style="width:0%"></div></div>
+            </div>
+        </div>
+
+        <!-- stream info -->
+        <div class="panel">
+            <div class="panel-title">Stream Info</div>
+            <div class="info-row"><span class="key">Video file</span><span class="val" id="i-video">—</span></div>
+            <div class="info-row"><span class="key">Platform</span><span class="val" id="i-platform">—</span></div>
+            <div class="info-row"><span class="key">Preset</span><span class="val" id="i-preset">—</span></div>
+            <div class="info-row"><span class="key">Restarts</span><span class="val" id="i-restarts">—</span></div>
+            <div class="info-row"><span class="key">Last error</span><span class="val" id="i-error" style="color:#6b6b85">none</span></div>
+        </div>
+
+    </div>
+
+    <script>
+        function fmt(d) {
+            const streaming = d.status === 'streaming';
+            // header
+            document.getElementById('hdr-dot').style.background = streaming ? '#22c55e' : '#ef4444';
+            document.getElementById('live-badge').textContent   = streaming ? 'LIVE' : 'OFFLINE';
+            document.getElementById('live-badge').style.background = streaming ? '#22c55e' : '#ef4444';
+            document.getElementById('platform-name').textContent = d.platform.toUpperCase();
+
+            // stat cards
+            const sStatus = document.getElementById('s-status');
+            sStatus.textContent = streaming ? 'Online' : d.status.charAt(0).toUpperCase() + d.status.slice(1);
+            sStatus.className   = 'stat-value ' + (streaming ? 'green' : 'red');
+
+            document.getElementById('s-restarts').textContent = d.restarts + ' restart' + (d.restarts !== 1 ? 's' : '');
+            document.getElementById('s-uptime').textContent   = d.uptime || '—';
+            document.getElementById('s-bitrate').textContent  = d.bitrate || '—';
+            document.getElementById('s-speed').textContent    = 'speed ' + d.speed;
+            document.getElementById('s-fps').textContent      = d.fps;
+
+            // system bars
+            document.getElementById('cpu-val').textContent = d.cpu + '%';
+            document.getElementById('ram-val').textContent = d.ram + '%';
+            document.getElementById('spd-val').textContent = d.speed;
+            document.getElementById('cpu-bar').style.width = Math.min(d.cpu, 100) + '%';
+            document.getElementById('ram-bar').style.width = Math.min(d.ram, 100) + '%';
+            const spd = parseFloat(d.speed) || 0;
+            document.getElementById('spd-bar').style.width = Math.min(spd / 2 * 100, 100) + '%';
+
+            // info table
+            document.getElementById('i-video').textContent    = d.video_file;
+            document.getElementById('i-platform').textContent = d.platform.toUpperCase();
+            document.getElementById('i-preset').textContent   = d.preset + ' / ' + d.scaling_algo;
+            document.getElementById('i-restarts').textContent = d.restarts;
+            const err = document.getElementById('i-error');
+            err.textContent = d.last_error || 'none';
+            err.style.color = d.last_error ? '#ef4444' : '#6b6b85';
+
+            document.title = streaming ? '🔴 LIVE · ' + d.bitrate : '⚫ Offline';
         }
 
-        setInterval(() => {
-            fetch('/api/status').then(r => r.json()).then(d => {
-                log.textContent = `Platform: ${d.platform.toUpperCase()}\\nVideo: ${d.video_file}\\nResolution: 640×960 (downscaled)\\nPreset: ${d.preset} + ${d.scaling_algo}\\nSpeed: ${d.speed} (≥1.0x target)\\nFPS: ${d.fps}\\nBitrate: ${d.bitrate}\\nUptime: ${d.uptime}\\nRestarts: ${d.restarts}\\nCPU: ${d.cpu}% | RAM: ${d.ram}%`;
-                log.scrollTop = log.scrollHeight;
-            });
-            update();
-        }, 3000);
+        function poll() {
+            fetch('/api/status').then(r => r.json()).then(fmt).catch(() => {});
+        }
 
-        update();
+        poll();
+        setInterval(poll, 3000);
     </script>
 </body>
 </html>
