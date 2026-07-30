@@ -62,12 +62,20 @@ def get_ffmpeg_command():
     ]
 
 def parse_stats(line):
-    if "fps=" in line and "speed=" in line:
-        match = re.search(r"fps=\s*([\d.]+).*bitrate=\s*([\d.]+)kbits/s.*speed=\s*([\d.]+)x", line)
-        if match:
-            stream_status["fps"] = round(float(match.group(1)), 1)
-            stream_status["bitrate"] = f"{match.group(2)} kb/s"
-            stream_status["speed"] = match.group(3) + "x"
+    if "speed=" not in line:
+        return
+    # fps (may be absent in copy mode)
+    fps_match = re.search(r"fps=\s*([\d.]+)", line)
+    if fps_match:
+        stream_status["fps"] = round(float(fps_match.group(1)), 1)
+    # bitrate (may show N/A in copy mode to null, but real value for RTMP)
+    br_match = re.search(r"bitrate=\s*([\d.]+)kbits/s", line)
+    if br_match:
+        stream_status["bitrate"] = f"{br_match.group(1)} kb/s"
+    # speed always present when "speed=" is in line
+    spd_match = re.search(r"speed=\s*([\d.]+)x", line)
+    if spd_match:
+        stream_status["speed"] = spd_match.group(1) + "x"
 
 @app.route('/')
 def dashboard():
@@ -184,12 +192,20 @@ def streaming_loop():
             stream_status.update({"status": "streaming", "start_time": datetime.now(), "last_error": None})
             proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, bufsize=1)
 
-            for line in proc.stderr:
-                line = line.strip()
-                if line: 
-                    parse_stats(line)
-                    if "frame=" not in line and "fps=" not in line and "speed=" not in line:
-                         print(line)
+            buf = ""
+            while True:
+                ch = proc.stderr.read(1)
+                if not ch:
+                    break
+                if ch in ('\r', '\n'):
+                    line = buf.strip()
+                    buf = ""
+                    if line:
+                        parse_stats(line)
+                        if "frame=" not in line and "fps=" not in line and "speed=" not in line:
+                            print(line)
+                else:
+                    buf += ch
 
             proc.wait()
             if proc.returncode != 0:
