@@ -1,3 +1,4 @@
+run = "python live.py"
 modules = ["python-3.12"]
 
 [nix]
