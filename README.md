@@ -1,30 +1,71 @@
-# 24/7 Live Stream to Facebook
+# 🚀 Advanced 24/7 Live Streamer
 
-A lightweight Python app that loops a video file and streams it 24/7 to Facebook (or YouTube) via FFmpeg, with a live status dashboard.
+A robust, optimized Python-based tool for continuous live streaming to Facebook, YouTube, or any custom RTMP target. Designed for stability and performance.
 
-## How to run
+## ✨ Features
 
-The app starts automatically via the **Start application** workflow (`python live.py`).  
-Open the preview pane to see the live dashboard.
+- **24/7 Continuous Streaming**: Automatic loop and restart on failure.
+- **Multi-Platform Support**: Built-in presets for Facebook and YouTube, plus custom RTMP support.
+- **Optimized Performance**: Uses stream copy by default for zero CPU overhead, with optional transcoding.
+- **Real-time Dashboard**: Web-based monitor for bitrate, FPS, speed, and system resources.
+- **Docker Ready**: Easy deployment using Docker and Docker Compose.
+- **Improved Logging**: Structured logging for easier troubleshooting.
 
-## Environment variables / secrets
+## 🛠️ Installation
 
-| Key | Where | Notes |
-|-----|-------|-------|
-| `STREAM_KEY` | Secret | Facebook/YouTube persistent stream key (required) |
-| `PLATFORM` | Shared env | `facebook` or `youtube` (default: `facebook`) |
-| `VIDEO_FILE` | Shared env | Video file to stream (default: `video_optimized.mp4`) |
-| `PORT` | Shared env | Web server port — set to `5000` for Replit preview |
+### Using Docker (Recommended)
 
-## Stack
+1. Clone the repository:
+   \`\`\`bash
+   git clone https://github.com/srengverse/Live_stream.git
+   cd Live_stream
+   \`\`\`
 
-- **Backend**: Python 3, Flask
-- **Streaming**: FFmpeg (copy mode — near-zero CPU)
-- **Frontend**: HTML + TailwindCSS (served by Flask)
+2. Create a \`.env\` file from the example:
+   \`\`\`bash
+   cp .env.example .env
+   \`\`\`
+   Edit \`.env\` and add your \`STREAM_KEY\`.
 
-## Notes
+3. Start the stream:
+   \`\`\`bash
+   docker-compose up -d
+   \`\`\`
 
-- `video_optimized.mp4` is already included (720×1280, h264/aac, copy-mode ready)
-- FFmpeg streams in copy mode (`-c:v copy -c:a copy`) — no transcoding
-- The video loops infinitely with `-stream_loop -1`
-- To switch to YouTube: change the `PLATFORM` env var to `youtube`
+### Manual Installation
+
+1. Install dependencies:
+   \`\`\`bash
+   pip install -r requirements.txt
+   \`\`\`
+
+2. Install FFmpeg on your system.
+
+3. Run the application:
+   \`\`\`bash
+   python live.py
+   \`\`\`
+
+## ⚙️ Configuration (.env)
+
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| \`PLATFORM\` | \`facebook\` or \`youtube\` | \`facebook\` |
+| \`STREAM_KEY\` | Your live stream key | - |
+| \`RTMP_URL\` | Custom RTMP destination | - |
+| \`VIDEO_FILE\` | Path to your video file | \`video_optimized.mp4\` |
+| \`FORCE_TRANSCODE\` | Force re-encoding (true/false) | \`false\` |
+| \`FFMPEG_PRESET\` | FFmpeg encoding preset | \`ultrafast\` |
+| \`PORT\` | Dashboard port | \`10000\` |
+
+## 📊 Dashboard
+
+Access the monitor at \`http://localhost:10000\`. It provides real-time stats:
+- **Status**: Current stream state.
+- **Uptime**: How long the current stream has been running.
+- **Bitrate/FPS**: Real-time encoding stats.
+- **System**: CPU and RAM usage.
+
+## 📝 License
+
+MIT License. Feel free to use and modify!

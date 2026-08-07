@@ -1,0 +1,11 @@
+services:
+  live-stream:
+    build: .
+    container_name: live-stream
+    restart: always
+    ports:
+      - "${PORT:-10000}:10000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
