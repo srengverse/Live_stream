@@ -108,9 +108,13 @@ def parse_stats(line):
             if fps_match:
                 stream_status["fps"] = round(float(fps_match.group(1)), 1)
             
-            br_match = re.search(r"bitrate=\s*([\d.]+)kbits/s", line)
+            br_match = re.search(r"bitrate=\s*([\d.kbits/sN/A]+)", line)
             if br_match:
-                stream_status["bitrate"] = f"{br_match.group(1)} kb/s"
+                br_val = br_match.group(1)
+                if "kbits/s" in br_val:
+                    stream_status["bitrate"] = br_val.replace("kbits/s", " kb/s")
+                else:
+                    stream_status["bitrate"] = br_val
             
             spd_match = re.search(r"speed=\s*([\d.]+)x", line)
             if spd_match:
